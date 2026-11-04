@@ -1,0 +1,42 @@
+# Linux Process Security Information
+
+A C program for Linux that retrieves security-related information about the current process by reading virtual files from the `/proc` filesystem.
+
+## Concepts
+
+- Linux `/proc` virtual filesystem
+- Process introspection
+- Process security attributes
+- No New Privileges (`NoNewPrivs`)
+- Seccomp filtering (`Seccomp`)
+- Linux capabilities (`CapEff` and `CapBnd`)
+- SELinux security labels
+- File handling in C (`fopen()`, `fgets()`, `fclose()`)
+- String manipulation (`strncmp()`, `strlen()`, `strcspn()`)
+
+## Description
+
+The program inspects the security configuration of the current process by reading two files from the Linux `/proc` filesystem.
+
+It retrieves selected security-related fields from `/proc/self/status`, including:
+
+- `NoNewPrivs`: indicates whether the process is prevented from gaining additional privileges through operations such as `execve()`.
+- `Seccomp`: shows the current Seccomp mode applied to the process.
+- `CapEff`: represents the effective Linux capabilities available to the process.
+- `CapBnd`: represents the capability bounding set, which limits the capabilities that can be acquired.
+
+It also reads `/proc/self/attr/current` to retrieve the current process security label, commonly associated with SELinux or another Linux Security Module (LSM).
+
+The program uses string comparison to identify and print only the requested fields, rather than displaying the entire contents of `/proc/self/status`.
+
+## Compilation
+
+```bash
+gcc -Wall -Wextra -Wpedantic process_security.c -o process_security
+```
+
+## Execution
+
+```bash
+./process_security
+```
