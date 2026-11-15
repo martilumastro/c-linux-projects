@@ -67,13 +67,65 @@ Esempio: "0000000000000000" -> "none"
 */
 static void print_caps(const char *label, const char *hexmask)
 {
+    char *end = NULL;
+
+    /*
+     * strtoull converte la stringa esadecimale e scrive in `end` il
+     * puntatore al primo carattere NON convertito. Questo ci permette
+     * di distinguere tre casi: conversione completa, conversione
+     * parziale, nessuna conversione.
+     *
+     * errno va azzerato prima della chiamata, perché strtoull lo
+     * imposta solo in caso di overflow/underflow (ERANGE).
+     */
     errno = 0;
-    unsigned long long mask = strtoull(hexmask, NULL, 16);
+    unsigned long long mask = strtoull(hexmask, &end, 16);
+
+    /*
+     * Caso 1: overflow o underflow. strtoull imposta errno = ERANGE.
+     * Il valore restituito non è affidabile: segnaliamo l'errore su
+     * stderr (diagnosi) e su stdout (risultato parsabile).
+     */
     if (errno != 0) {
+        fprintf(stderr, "%s: conversion failed for '%s' (errno=%d)\n",
+                label, hexmask, errno);
         printf("%s=parse_error\n", label);
         return;
     }
 
+    /*
+     * Caso 2: nessuna cifra convertita. strtoull non ha consumato
+     * nulla, quindi `end` punta ancora all'inizio della stringa
+     * (end == hexmask). Questo caso NON imposta errno, quindi va
+     * controllato esplicitamente: senza questo check, un valore
+     * non numerico verrebbe letto come "0" (falso negativo).
+     */
+    if (end == hexmask) {
+        fprintf(stderr, "%s: no hexadecimal digits in '%s'\n",
+                label, hexmask);
+        printf("%s=parse_error\n", label);
+        return;
+    }
+
+    /*
+     * Caso 3: conversione parziale. strtoull ha letto le cifre
+     * iniziali e si è fermata su un carattere non esadecimale
+     * (*end != '\0'). Il numero è valido, ma c'è "sporcizia" dopo:
+     * lo segnaliamo su stderr senza interrompere l'analisi.
+     * Nota: read_kv rimuove già il newline finale, quindi per un
+     * valore ben formato *end dovrebbe essere '\0'.
+     */
+    if (*end != '\0') {
+        fprintf(stderr, "%s: trailing characters after number: '%s'\n",
+                label, end);
+        /* non fatale: il numero è valido, ma lo segnaliamo */
+    }
+
+    /*
+     * Conversione riuscita (completa o con sporcizia segnalata):
+     * stampiamo il valore in formato k=v su stdout, con la maschera
+     * esadecimale e, se non è zero, l'elenco dei nomi delle capability.
+     */
     printf("%s=0x%llx", label, mask);
     if (mask == 0) {
         printf(" (none)\n");
@@ -108,7 +160,7 @@ static void print_selinux(void)
         printf("selinux_mode=%s\n",
                enforce[0] == '1' ? "enforcing" : "permissive");
     } else {
-        printf("selinux_mode=disabled\n");
+        printf("selinux_mode=unavailable\n");
     }
 }
 
