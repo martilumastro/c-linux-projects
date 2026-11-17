@@ -16,9 +16,10 @@ static int read_kv(const char *path, const char *prefix,
                    char *out, size_t outlen)
 {
     FILE *fp = fopen(path, "r");
-    if (!fp)
+    if (!fp){
+        perror("fopen");
         return -1;
-
+    }
     char line[512];
     size_t plen = strlen(prefix);
     int found = -1;
@@ -37,7 +38,10 @@ static int read_kv(const char *path, const char *prefix,
         found = 0;
         break;
     }
-    fclose(fp);
+    if (fclose(fp) == EOF) {
+        perror("fclose");
+        return -1;
+    }
     return found;
 }
 
