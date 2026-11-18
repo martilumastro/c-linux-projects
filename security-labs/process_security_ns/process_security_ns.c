@@ -90,8 +90,7 @@ static void collect_namespaces(NamespaceInfo *ns_info, size_t count) {
                 ns_info[i].state = ERROR;
             }
 
-            fprintf(stderr, "Namespace %s: %s\n",
-                    ns_info[i].name, strerror(err));
+            fprintf(stderr, "Namespace %s: %s\n", ns_info[i].name, strerror(err));
         }
     }
 }
